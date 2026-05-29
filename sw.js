@@ -1,5 +1,6 @@
-const CACHE_NAME = 'makrotracker-v2';
+const CACHE_NAME = 'makrotracker-v3';
 const ASSETS = [
+  './',
   'index.html',
   'manifest.json'
 ];
