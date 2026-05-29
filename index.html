@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Makro Tracker v1.2 — Check-In Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --card-color: #1c1c1e;
+            --input-color: #2c2c2e;
+            --text-color: #f5f5f7;
+            --text-secondary: #8e8e93;
+            --accent-blue: #3e7df6;
+            --accent-red: #ff453a;
+            --protein-color: #30d158;
+            --carbs-color: #ffd60a;
+            --fat-color: #ff9f0a;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f2f2f7;
+            --card-color: #ffffff;
+            --input-color: #e5e5ea;
+            --text-color: #000000;
+            --text-secondary: #6c6c70;
+            --accent-blue: #007aff;
+            --accent-red: #ff3b30;
+        }
+
+        @media (prefers-color-scheme: light) {
+            body:not([data-theme="dark"]) {
+                --bg-color: #f2f2f7;
+                --card-color: #ffffff;
+                --input-color: #e5e5ea;
+                --text-color: #000000;
+                --text-secondary: #6c6c70;
+                --accent-blue: #007aff;
+                --accent-red: #ff3b30;
+            }
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            position: relative;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 20px 20px 100px 20px;
+            box-sizing: border-box;
+        }
+
+        /* STICKY BOTTOM NAVIGATION BAR */
+        .view-navigation {
+            display: flex;
+            align-items: center;
+            background-color: var(--card-color);
+            border-radius: 20px;
+            padding: 6px;
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.15);
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 460px;
+            z-index: 90;
+        }
+
+        .view-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .view-tab.active {
+            background-color: var(--input-color);
+            color: var(--text-color);
+        }
+
+        .settings-gear-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 0 14px;
+            user-select: none;
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .settings-gear-btn:hover {
+            transform: rotate(45deg);
+        }
+
+        /* MODAL DIALOG & TABS */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-card {
+            background-color: var(--card-color);
+            border-radius: 24px;
+            padding: 24px;
+            width: 90%;
+            max-width: 440px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .modal-tabs {
+            display: flex;
+            background-color: var(--input-color);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .modal-tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .modal-tab-btn.active {
+            background-color: var(--card-color);
+            color: var(--text-color);
+        }
+
+        .modal-tab-content {
+            display: none;
+        }
+
+        .modal-tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background-color: var(--card-color);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .form-row .form-group label {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 11px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            padding-left: 4px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            background-color: var(--input-color);
+            border: none;
+            border-radius: 14px;
+            color: var(--text-color);
+            padding: 12px 16px;
+            font-size: 16px;
+            box-sizing: border-box;
+            font-family: var(--font-family);
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: 2px solid var(--accent-blue);
+        }
+
+        .activity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .activity-item input {
+            display: none;
+        }
+
+        .activity-item label {
+            display: block;
+            background-color: var(--input-color);
+            color: var(--text-color);
+            padding: 10px 8px;
+            border-radius: 14px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 0;
+            user-select: none;
+            transition: background-color 0.15s, color 0.15s;
+        }
+
+        .activity-item input:checked + label {
+            background-color: var(--accent-blue);
+            color: white;
+            font-weight: 600;
+        }
+
+        .btn {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .btn-secondary {
+            background-color: var(--input-color);
+            color: var(--text-color);
+            margin-top: 0;
+            flex: 1;
+            font-size: 14px;
+            padding: 12px 16px;
+        }
+
+        .activity-manager-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--input-color);
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+        }
+
+        .activity-manager-item button {
+            background: none;
+            border: none;
+            color: var(--accent-red);
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .folder-main-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .folder-main-content {
+            margin-top: 16px;
+            border-left: 2px dashed var(--input-color);
+            padding-left: 10px;
+        }
+
+        .week-folder {
+            background-color: var(--input-color);
+            border-radius: 16px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .week-header {
+            padding: 14px 16px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .week-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .week-info-row {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .week-content {
+            display: none;
+            background-color: var(--card-color);
+            padding: 12px 16px;
+            border-top: 1px solid var(--input-color);
+        }
+
+        .week-folder.open .week-content {
+            display: block;
+        }
+
+        .week-header-trend {
+            font-weight: bold;
+            margin-left: 4px;
+        }
+        .trend-up { color: var(--accent-red); }
+        .trend-down { color: #30d158; }
+        .trend-neutral { color: var(--text-secondary); }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--input-color);
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        .log-info h4 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .log-info p {
+            margin: 4px 0 0 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .log-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .log-badge {
+            background-color: var(--input-color);
+            color: var(--text-color);
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            align-items: flex-end;
+        }
+
+        .edit-btn {
+            background: none;
+            border: none;
+            color: var(--accent-blue);
+            font-size: 13px;
+            cursor: pointer;
+            padding: 2px 6px;
+            font-weight: 500;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--accent-red);
+            font-size: 13px;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+
+        .chart-controls {
+            display: flex;
+            background-color: var(--input-color);
+            border-radius: 16px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .chart-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .chart-btn.active {
+            background-color: var(--card-color);
+            color: var(--text-color);
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            min-height: 260px;
+            width: 100%;
+        }
+
+        .ai-response-box {
+            background-color: var(--input-color);
+            border-radius: 14px;
+            padding: 18px;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-top: 15px;
+            border-left: 4px solid var(--accent-blue);
+        }
+
+        .ai-response-box p { margin: 0 0 10px 0; }
+        .ai-response-box p:last-child { margin-bottom: 0; }
+        .ai-response-box strong { color: var(--text-color); font-weight: 700; }
+        .ai-response-box em { font-style: italic; color: var(--text-secondary); }
+        .ai-response-box ul { margin: 0 0 12px 0; padding-left: 20px; }
+        .ai-response-box li { margin-bottom: 6px; }
+
+        /* DASHBOARD BANNER FOR GOALS */
+        .dashboard-goals-banner {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background-color: var(--card-color);
+            border-radius: 24px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .dashboard-goals-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+        .dashboard-goals-grid {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        .dashboard-goal-item {
+            flex: 1;
+        }
+        .dashboard-goal-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .dashboard-goal-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .dashboard-goal-macros {
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid var(--input-color);
+            padding-top: 8px;
+            margin-top: 4px;
+        }
+        .dashboard-macro-subitem {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* CHECK-IN SPEZIFISCHE STYLES */
+        .checkin-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .checkin-stat-card {
+            background-color: var(--input-color);
+            padding: 14px;
+            border-radius: 16px;
+            text-align: center;
+        }
+        .checkin-stat-card .val {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-color);
+            margin-top: 4px;
+        }
+        .checkin-stat-card .lbl {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+
+<div class="modal-overlay" id="settingsModal" onclick="closeSettingsModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+        <h2 style="margin-top:0; margin-bottom: 14px;">Einstellungen</h2>
+        
+        <div class="modal-tabs">
+            <button class="modal-tab-btn active" onclick="switchModalTab('m-profile')">Profil</button>
+            <button class="modal-tab-btn" onclick="switchModalTab('m-options')">App-Optionen</button>
+            <button class="modal-tab-btn" onclick="switchModalTab('m-activities')">Aktivitäten</button>
+        </div>
+
+        <div id="modalContent-m-profile" class="modal-tab-content active">
+            <div class="form-group">
+                <label for="targetCaloriesInput">Ziel-Kalorien (kcal)</label>
+                <input type="number" id="targetCaloriesInput" placeholder="2500" oninput="updateTargetCalories(this.value)">
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1;">
+                    <label for="userAge">Alter</label>
+                    <input type="number" id="userAge" placeholder="z.B. 25">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label for="userHeight">Größe (cm)</label>
+                    <input type="number" id="userHeight" placeholder="z.B. 180">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="userGender">Geschlecht</label>
+                <select id="userGender">
+                    <option value="Nicht angegeben">Nicht angegeben</option>
+                    <option value="Männlich">Männlich</option>
+                    <option value="Weiblich">Weiblich</option>
+                    <option value="Divers">Divers</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="userActivity">Alltags-Aktivitätslevel</label>
+                <select id="userActivity">
+                    <option value="Sedentär (fast nur sitzen)">Sedentär (Sitzend, kaum Bewegung)</option>
+                    <option value="Leicht aktiv (viel Gehen/Stehen im Alltag)">Leicht aktiv (viel Stehen/Gehen)</option>
+                    <option value="Moderat aktiv (körperliche Arbeit)">Moderat aktiv (Körperliche Arbeit)</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1;">
+                    <label for="userFrequency">Workouts / Woche</label>
+                    <input type="number" id="userFrequency" min="0" max="7" placeholder="z.B. 4">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="userGoal">Fitness- / Gewichtsziel</label>
+                <select id="userGoal">
+                    <option value="Gewicht halten">Gewicht halten (Maintain)</option>
+                    <option value="Fettabbau / Definition">Fettabbau (Defizit)</option>
+                    <option value="Muskelaufbau / Massephase">Muskelaufbau (Überschuss)</option>
+                    <option value="Body Recomposition">Body Recomposition (Gleichzeitiger Fettabbau & Muskelaufbau)</option>
+                </select>
+            </div>
+            <button class="btn" style="margin-top: 10px;" onclick="saveUserProfileData()">Profil Speichern</button>
+        </div>
+
+        <div id="modalContent-m-options" class="modal-tab-content">
+            <div class="form-group">
+                <label for="appTheme">Farbschema</label>
+                <select id="appTheme" onchange="applyThemeSetting(this.value)">
+                    <option value="system">System-Standard</option>
+                    <option value="dark">Dark Mode</option>
+                    <option value="light">Light Mode</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="apiKeyInput">Gemini API-Key</label>
+                <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
+            </div>
+            <button class="btn" style="margin-top: 10px;" onclick="saveUserProfileData()">Optionen Speichern</button>
+        </div>
+
+        <div id="modalContent-m-activities" class="modal-tab-content">
+            <div class="form-group">
+                <label for="newActivityInput">Neue Aktivität hinzufügen</label>
+                <div class="form-row">
+                    <input type="text" id="newActivityInput" placeholder="z.B. Joggen, Krafttraining">
+                    <button class="btn" style="margin-top:0; width: auto; white-space: nowrap; padding: 0 16px; border-radius: 14px;" onclick="addCustomActivity()">+</button>
+                </div>
+            </div>
+            <label>Bestehende Aktivitäten</label>
+            <div id="customActivitiesList" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;"></div>
+        </div>
+
+        <button class="btn btn-secondary" style="margin-top: 16px;" onclick="closeSettingsModal(true)">Schließen</button>
+    </div>
+</div>
+
+<div class="container">
+
+    <div id="viewContainer-log">
+        <div class="dashboard-goals-banner" id="dashboardGoalsBanner"></div>
+
+        <div class="card">
+            <h2 id="formTitle">Eintrag hinzufügen</h2>
+            <form id="macroForm" onsubmit="handleFormSubmit(event)">
+                <div class="form-row">
+                    <div class="form-group" style="flex:1;">
+                        <label for="date">Datum</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="weight">Gewicht (kg)</label>
+                        <input type="number" id="weight" step="0.1" min="0" placeholder="0.0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex:1.2;">
+                        <label for="calories">Kalorien (kcal)</label>
+                        <input type="number" id="calories" min="0" placeholder="Automatisch berechnen falls leer">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="carbs">Carbs (g)</label>
+                        <input type="number" id="carbs" min="0" placeholder="0">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="protein">Protein (g)</label>
+                        <input type="number" id="protein" min="0" placeholder="0">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="fat">Fett (g)</label>
+                        <input type="number" id="fat" min="0" placeholder="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Aktivitäten</label>
+                    <div class="activity-grid" id="dynamicActivityGrid"></div>
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notizen</label>
+                    <textarea id="notes" rows="2" placeholder="Notizen hinzufügen..."></textarea>
+                </div>
+                <button type="submit" id="submitBtn" class="btn">Speichern</button>
+            </form>
+        </div>
+
+        <div class="card" id="currentWeekCard">
+            <h2>Aktuelle Woche</h2>
+            <div id="currentWeekStructure"></div>
+        </div>
+    </div>
+
+    <div id="viewContainer-analysis" style="display: none;">
+        <div class="card">
+            <h2>Kalorien & Makros (Letzte 7 Tage)</h2>
+            <div class="chart-wrapper">
+                <canvas id="macroChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Gewichtsverlauf</h2>
+            <div id="weightFilterControls" class="chart-controls">
+                <button class="chart-btn active" id="btn-w-daily" onclick="changeWeightFilter('daily')">Täglich</button>
+                <button class="chart-btn" id="btn-w-weekly" onclick="changeWeightFilter('weekly')">Wöchentlich Ø</button>
+                <button class="chart-btn" id="btn-w-monthly" onclick="changeWeightFilter('monthly')">Monatlich Ø</button>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="weightChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Gemini KI-Auswertung</h2>
+            <div class="form-group">
+                <label for="aiCustomPrompt">Spezifischer Fokus / Zeitraum für die Analyse</label>
+                <textarea id="aiCustomPrompt" rows="2" placeholder="z.B. Vergleiche die letzte Woche mit der vorletzten..."></textarea>
+            </div>
+            <button class="btn" onclick="runAiAnalysis()">Daten von Gemini analysieren lassen</button>
+            <div id="aiResponse" style="display:none;" class="ai-response-box"></div>
+        </div>
+
+        <div class="card">
+            <h2 class="folder-main-title" onclick="toggleMainFolder()">
+                <span id="mainFolderChevron">▼</span> Verlauf
+            </h2>
+            <div id="mainFolderContent" class="folder-main-content">
+                <div id="weeklyFolderStructure"></div>
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="exportToCSV()">Alle Daten exportieren</button>
+                    <button class="btn btn-secondary" onclick="triggerImport()">Importieren</button>
+                </div>
+                <input type="file" id="csvImport" accept=".csv" style="display: none;" onchange="importCSV(event)">
+            </div>
+        </div>
+    </div>
+
+    <div id="viewContainer-checkin" style="display: none;">
+        <div class="card">
+            <h2>Wöchentlicher KI Check-In</h2>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-top: -10px; line-height: 1.4;">
+                Dieser Algorithmus berechnet mathematisch präzise deinen aktuellen Energieumsatz (TDEE) basierend auf deinen Gewichtsschwankungen und Kalorien-Inputs der letzten 14 Tage und passt deine Ziele adaptiv an.
+            </p>
+            
+            <div class="checkin-stats-grid">
+                <div class="checkin-stat-card">
+                    <div class="lbl">Verfügbare Tage (14d)</div>
+                    <div class="val" id="checkinAvailableDays">0 / 14</div>
+                </div>
+                <div class="checkin-stat-card">
+                    <div class="lbl">Gewichtseinträge</div>
+                    <div class="val" id="checkinWeightCount">0</div>
+                </div>
+            </div>
+
+            <button class="btn" onclick="runMacroFactorCheckIn()">Check-In jetzt ausführen</button>
+            <div id="checkinAiResponse" style="display:none;" class="ai-response-box"></div>
+        </div>
+    </div>
+
+</div>
+
+<div class="view-navigation">
+    <button class="view-tab active" id="tab-log" onclick="switchView('log')">Eintragen</button>
+    <button class="view-tab" id="tab-analysis" onclick="switchView('analysis')">Analyse</button>
+    <button class="view-tab" id="tab-checkin" onclick="switchView('checkin')">Check-In</button>
+    <button class="settings-gear-btn" onclick="openSettingsModal()">⚙️</button>
+</div>
+
+<script>
+    let macroData = JSON.parse(localStorage.getItem('macroData')) || [];
+    let customActivities = JSON.parse(localStorage.getItem('customActivities')) || ['Cardio', 'Krafttraining', 'Spaziergang', 'Yoga'];
+    let targetCalories = parseInt(localStorage.getItem('targetCalories')) || 2000;
+    
+    let targetProtein = parseInt(localStorage.getItem('targetProtein')) || 0;
+    let targetCarbs = parseInt(localStorage.getItem('targetCarbs')) || 0;
+    let targetFat = parseInt(localStorage.getItem('targetFat')) || 0;
+
+    let macroChartInstance = null;
+    let weightChartInstance = null;
+    let weightFilter = 'daily';
+    let isMainFolderOpen = true;
+
+    window.onload = function() {
+        initDates();
+        loadUserProfile();
+        applyInitialTheme();
+        buildActivityGrid();
+        renderActivityManagerList();
+        updateUI();
+    };
+
+    function initDates() {
+        const today = new Date().toISOString().substring(0, 10);
+        document.getElementById('date').value = today;
+        loadEntryForDate(today);
+
+        document.getElementById('date').addEventListener('change', function() {
+            loadEntryForDate(this.value);
+        });
+    }
+
+    function loadEntryForDate(dateStr) {
+        const entry = macroData.find(item => item.date === dateStr);
+        const formTitle = document.getElementById('formTitle');
+        const submitBtn = document.getElementById('submitBtn');
+
+        if (entry) {
+            formTitle.innerText = "Eintrag bearbeiten";
+            submitBtn.innerText = "Aktualisieren";
+            document.getElementById('weight').value = entry.weight || '';
+            document.getElementById('calories').value = entry.calories || '';
+            document.getElementById('carbs').value = entry.carbs || '';
+            document.getElementById('protein').value = entry.protein || '';
+            document.getElementById('fat').value = entry.fat || '';
+            document.getElementById('notes').value = entry.notes || '';
+            document.querySelectorAll('#dynamicActivityGrid input[type="checkbox"]').forEach(cb => {
+                cb.checked = entry.activities ? entry.activities.includes(cb.value) : false;
+            });
+        } else {
+            formTitle.innerText = "Eintrag hinzufügen";
+            submitBtn.innerText = "Speichern";
+            document.getElementById('weight').value = '';
+            document.getElementById('calories').value = '';
+            document.getElementById('carbs').value = '';
+            document.getElementById('protein').value = '';
+            document.getElementById('fat').value = '';
+            document.getElementById('notes').value = '';
+            document.querySelectorAll('#dynamicActivityGrid input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+    }
+
+    function editEntryByDate(dateStr) {
+        document.getElementById('date').value = dateStr;
+        loadEntryForDate(dateStr);
+        switchView('log');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateTargetCalories(val) {
+        targetCalories = parseInt(val) || 0;
+        localStorage.setItem('targetCalories', targetCalories);
+        document.getElementById('targetCaloriesInput').value = targetCalories;
+        updateGoalsBanner();
+        if(document.getElementById('viewContainer-analysis').style.display !== 'none') {
+            renderCharts();
+        }
+    }
+
+    function updateGoalsBanner() {
+        const banner = document.getElementById('dashboardGoalsBanner');
+        if (targetCarbs > 0 || targetProtein > 0 || targetFat > 0) {
+            banner.innerHTML = `
+                <div class="dashboard-goals-title">Aktuelle Check-In Ziele</div>
+                <div class="dashboard-goals-grid">
+                    <div class="dashboard-goal-item">
+                        <div class="dashboard-goal-value">${targetCalories} <span style="font-size:12px; font-weight:500;">kcal</span></div>
+                        <div class="dashboard-goal-label">Energie-Zufuhr</div>
+                    </div>
+                </div>
+                <div class="dashboard-goal-macros">
+                    <div class="dashboard-macro-subitem" style="color:var(--carbs-color)">K: ${targetCarbs}g</div>
+                    <div class="dashboard-macro-subitem" style="color:var(--protein-color)">P: ${targetProtein}g</div>
+                    <div class="dashboard-macro-subitem" style="color:var(--fat-color)">F: ${targetFat}g</div>
+                </div>
+            `;
+        } else {
+            banner.innerHTML = `
+                <div class="dashboard-goals-title">Aktuelles Tagesziel</div>
+                <div class="dashboard-goals-grid">
+                    <div class="dashboard-goal-item">
+                        <div class="dashboard-goal-value">${targetCalories} <span style="font-size:12px; font-weight:500;">kcal</span></div>
+                        <div class="dashboard-goal-label">Energie-Budget</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function switchView(viewName) {
+        document.querySelectorAll('.view-tab').forEach(tab => tab.classList.remove('active'));
+        document.getElementById(`tab-${viewName}`).classList.add('active');
+
+        document.getElementById('viewContainer-log').style.display = 'none';
+        document.getElementById('viewContainer-analysis').style.display = 'none';
+        document.getElementById('viewContainer-checkin').style.display = 'none';
+
+        document.getElementById(`viewContainer-${viewName}`).style.display = 'block';
+
+        if (viewName === 'analysis') {
+            renderCharts();
+        } else if (viewName === 'checkin') {
+            updateCheckInMetadataStats();
+        }
+    }
+
+    function updateCheckInMetadataStats() {
+        const now = new Date();
+        let daysAvailable = 0;
+        let weightsCount = 0;
+
+        for(let i=0; i<14; i++) {
+            const d = new Date();
+            d.setDate(now.getDate() - i);
+            const dStr = d.toISOString().substring(0,10);
+            const entry = macroData.find(x => x.date === dStr);
+            if (entry) {
+                daysAvailable++;
+                if (entry.weight > 0) weightsCount++;
+            }
+        }
+        document.getElementById('checkinAvailableDays').innerText = `${daysAvailable} / 14`;
+        document.getElementById('checkinWeightCount').innerText = weightsCount;
+    }
+
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        const date = document.getElementById('date').value;
+        const weight = parseFloat(document.getElementById('weight').value) || 0;
+        let protein = parseInt(document.getElementById('protein').value) || 0;
+        let carbs = parseInt(document.getElementById('carbs').value) || 0;
+        let fat = parseInt(document.getElementById('fat').value) || 0;
+        let calories = parseInt(document.getElementById('calories').value) || 0;
+
+        if (!calories && (protein || carbs || fat)) {
+            calories = Math.round((protein * 4) + (carbs * 4) + (fat * 9));
+        }
+
+        const selectedActivities = [];
+        document.querySelectorAll('#dynamicActivityGrid input[type="checkbox"]:checked').forEach(cb => {
+            selectedActivities.push(cb.value);
+        });
+
+        const notes = document.getElementById('notes').value;
+        const existingIndex = macroData.findIndex(item => item.date === date);
+
+        const entry = {
+            id: existingIndex >= 0 ? macroData[existingIndex].id : Date.now(),
+            date, weight, calories, protein, carbs, fat,
+            activities: selectedActivities,
+            notes
+        };
+
+        if (existingIndex >= 0) macroData[existingIndex] = entry;
+        else macroData.push(entry);
+
+        macroData.sort((a, b) => new Date(a.date) - new Date(b.date));
+        saveData();
+        updateUI();
+        loadEntryForDate(date);
+        alert("Eintrag erfolgreich gespeichert!");
+    }
+
+    function deleteEntry(id) {
+        if (confirm("Möchtest du diesen Eintrag wirklich löschen?")) {
+            macroData = macroData.filter(item => item.id !== id);
+            saveData();
+            updateUI();
+            initDates();
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('macroData', JSON.stringify(macroData));
+    }
+
+    function updateUI() {
+        renderWeeklyLog();
+        updateGoalsBanner();
+    }
+
+    function getWeekInfo(dateStr) {
+        const d = new Date(dateStr);
+        d.setHours(0,0,0,0);
+        d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+        const yearStart = new Date(d.getFullYear(),0,1);
+        const weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1) / 7);
+        return { year: d.getFullYear(), week: weekNo };
+    }
+
+    function generateWeekHtml(key, group, index, sortedKeys, groups, isLogView = false) {
+        const entriesCount = group.entries.length;
+        let totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
+        let weightSum = 0, weightCount = 0;
+
+        group.entries.forEach(e => {
+            totalCal += e.calories || 0;
+            totalP += e.protein || 0;
+            totalC += e.carbs || 0;
+            totalF += e.fat || 0;
+            if(e.weight > 0) {
+                weightSum += e.weight;
+                weightCount++;
+            }
+        });
+
+        const avgCal = Math.round(totalCal / entriesCount);
+        const avgP = Math.round(totalP / entriesCount);
+        const avgC = Math.round(totalC / entriesCount);
+        const avgF = Math.round(totalF / entriesCount);
+        const avgWeight = weightCount > 0 ? (weightSum / weightCount) : null;
+
+        let trendHtml = '';
+        if (avgWeight && index < sortedKeys.length - 1) {
+            const prevKey = sortedKeys[index + 1];
+            const prevGroup = groups[prevKey];
+            let prevWeightSum = 0, prevWeightCount = 0;
+            if (prevGroup) {
+                prevGroup.entries.forEach(e => {
+                    if(e.weight > 0) { prevWeightSum += e.weight; prevWeightCount++; }
+                });
+                if (prevWeightCount > 0) {
+                    const prevAvgWeight = prevWeightSum / prevWeightCount;
+                    const diff = avgWeight - prevAvgWeight;
+                    if (diff > 0) {
+                        trendHtml = `<span class="week-header-trend trend-up">↗ +${diff.toFixed(1)}kg</span>`;
+                    } else if (diff < 0) {
+                        trendHtml = `<span class="week-header-trend trend-down">↘ ${diff.toFixed(1)}kg</span>`;
+                    } else {
+                        trendHtml = `<span class="week-header-trend trend-neutral">→ 0.0kg</span>`;
+                    }
+                }
+            }
+        }
+
+        const weightText = avgWeight ? `${avgWeight.toFixed(1)} kg` : '-- kg';
+        const folderId = `folder-${isLogView ? 'log' : 'an'}-${key}`;
+
+        let html = `
+            <div class="week-folder" id="${folderId}">
+                <div class="week-header" onclick="toggleFolder('${folderId}')">
+                    <div class="week-title-row">
+                        <span>Woche ${group.week} (${group.year})</span>
+                        <span>${weightText} ${trendHtml}</span>
+                    </div>
+                    <div class="week-info-row">
+                        Ø ${avgCal} kcal | P: ${avgP}g | K: ${avgC}g | F: ${avgF}g (${entriesCount} Tage)
+                    </div>
+                </div>
+                <div class="week-content">
+        `;
+
+        const sortedEntries = [...group.entries].sort((a,b) => b.date.localeCompare(a.date));
+
+        sortedEntries.forEach(item => {
+            const formattedDate = new Date(item.date).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+            const weightText = item.weight > 0 ? `${item.weight.toFixed(1)} kg` : '-- kg';
+            let badgesHtml = '';
+            if (item.activities && item.activities.length > 0) {
+                badgesHtml = `<div class="log-tags">` + item.activities.map(act => `<span class="log-badge">${act}</span>`).join('') + `</div>`;
+            }
+
+            html += `
+                <div class="log-item">
+                    <div class="log-info">
+                        <h4>${formattedDate} — ${item.calories || 0} kcal (${weightText})</h4>
+                        <p>K: ${item.carbs}g | P: ${item.protein}g | F: ${item.fat}g ${item.notes ? ` • <i>${item.notes}</i>` : ''}</p>
+                        ${badgesHtml}
+                    </div>
+                    <div class="action-buttons">
+                        <button class="edit-btn" onclick="editEntryByDate('${item.date}')">Bearbeiten</button>
+                        <button class="delete-btn" onclick="deleteEntry(${item.id})">Löschen</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+            </div>
+        `;
+        return html;
+    }
+
+    function renderWeeklyLog() {
+        const containerAnalysis = document.getElementById('weeklyFolderStructure');
+        const containerLog = document.getElementById('currentWeekStructure');
+        containerAnalysis.innerHTML = '';
+        containerLog.innerHTML = '';
+
+        if(macroData.length === 0) {
+            const emptyHtml = '<p style="color:var(--text-secondary); text-align:center; font-size:14px; padding: 10px 0;">Noch keine Daten im Verlauf.</p>';
+            containerAnalysis.innerHTML = emptyHtml;
+            containerLog.innerHTML = emptyHtml;
+            return;
+        }
+
+        const groups = {};
+        macroData.forEach(item => {
+            const info = getWeekInfo(item.date);
+            const key = `${info.year}-W${String(info.week).padStart(2, '0')}`;
+            if (!groups[key]) {
+                groups[key] = { key: key, year: info.year, week: info.week, entries: [] };
+            }
+            groups[key].entries.push(item);
+        });
+
+        const sortedKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+        const currentInfo = getWeekInfo(new Date().toISOString().substring(0,10));
+        const currentWeekKey = `${currentInfo.year}-W${String(currentInfo.week).padStart(2, '0')}`;
+
+        let logViewRendered = false;
+
+        sortedKeys.forEach((key, index) => {
+            const html = generateWeekHtml(key, groups[key], index, sortedKeys, groups, false);
+            containerAnalysis.innerHTML += html;
+
+            if (key === currentWeekKey) {
+                const logHtml = generateWeekHtml(key, groups[key], index, sortedKeys, groups, true);
+                containerLog.innerHTML = logHtml;
+                document.getElementById(`folder-log-${key}`).classList.add('open');
+                logViewRendered = true;
+            }
+        });
+
+        if (!logViewRendered) {
+            containerLog.innerHTML = '<p style="color:var(--text-secondary); text-align:center; font-size:14px; padding: 10px 0;">Keine Einträge für diese Kalenderwoche vorhanden.</p>';
+        }
+
+        if (sortedKeys.length > 0) {
+            document.getElementById(`folder-an-${sortedKeys[0]}`).classList.add('open');
+        }
+    }
+
+    function toggleFolder(id) {
+        const el = document.getElementById(id);
+        if(el) el.classList.toggle('open');
+    }
+
+    function toggleMainFolder() {
+        isMainFolderOpen = !isMainFolderOpen;
+        const content = document.getElementById('mainFolderContent');
+        const chevron = document.getElementById('mainFolderChevron');
+        if(isMainFolderOpen) {
+            content.style.display = 'block';
+            chevron.innerText = '▼';
+        } else {
+            content.style.display = 'none';
+            chevron.innerText = '▶';
+        }
+    }
+
+    async function runMacroFactorCheckIn() {
+        const apiKey = localStorage.getItem('geminiApiKey');
+        const responseBox = document.getElementById('checkinAiResponse');
+        
+        if (!apiKey) {
+            alert("Bitte hinterlege zuerst deinen Gemini API-Key in den App-Optionen (Zahnrad oben rechts).");
+            openSettingsModal();
+            switchModalTab('m-options');
+            return;
+        }
+
+        responseBox.style.display = 'block';
+        responseBox.innerHTML = '<p style="color:var(--text-secondary);"><strong>MacroFactor-Kernel wird gestartet...</strong> Daten werden thermodynamisch analysiert...</p>';
+
+        const now = new Date();
+        const lookbackDays = 14;
+        const historicalEntries = [];
+
+        for(let i = lookbackDays - 1; i >= 0; i--) {
+            const targetDate = new Date();
+            targetDate.setDate(now.getDate() - i);
+            const dateStr = targetDate.toISOString().substring(0,10);
+            const entry = macroData.find(x => x.date === dateStr);
+            if(entry) {
+                historicalEntries.push(entry);
+            }
+        }
+
+        if (historicalEntries.length < 3) {
+            responseBox.innerHTML = `<p style="color:var(--accent-red)"><strong>Check-In unvollständig:</strong> Es müssen mindestens 3 Log-Einträge innerhalb der letzten 14 Tage existieren, um einen repräsentativen TDEE-Trend berechnen zu können.</p>`;
+            return;
+        }
+
+        const datasetStr = historicalEntries.map(d => {
+            return `${d.date}: ${d.calories} kcal | W: ${d.weight > 0 ? d.weight+'kg' : '--'} | P: ${d.protein}g, K: ${d.carbs}g, F: ${d.fat}g`;
+        }).join('\n');
+
+        const profile = JSON.parse(localStorage.getItem('userProfileData')) || {};
+
+        const prompt = `Du agierst als der mathematische Kernalgorithmus von MacroFactor. Deine Aufgabe ist es, basierend auf den echten Änderungen des Körpergewichts und der Energiezufuhr der letzten 14 Tage den mathematisch exakten TDEE (Gesamtumsatz) des Nutzers zu schätzen. Verzichte komplett auf Emojis und Geplänkel. Nutze sauberes Markdown.
+        
+WICHTIGE REGEL FÜR DIE PARSBARKEIT: Am Ende deiner Antwort MUSST du zwingend ein JSON-Objekt im exakten Format schreiben (schließe es in einen regulären Codeblock ein):
+\`\`\`json
+{
+  "new_target_calories": 2450,
+  "new_target_carbs": 250,
+  "new_target_protein": 180,
+  "new_target_fat": 70
+}
+\`\`\`
+Stelle sicher, dass diese Werte mathematisch auf das errechnete Kalorienziel passen (Protein=4kcal/g, Carbs=4kcal/g, Fett=9kcal/g).
+
+Aktuelles Kalorienziel des Nutzers: ${targetCalories} kcal.
+User-Ziel: ${profile.goal || 'Gewicht halten'}
+Profil-Metadaten: Alter=${profile.age || '--'}, Größe=${profile.height || '--'}, Aktivitätslevel=${profile.activity || '--'}.
+
+Historische Daten der letzten Tage:
+${datasetStr}
+
+Berücksichtige die thermodynamische Formel (ca. 7700 kcal entsprechen 1kg Fettgewebe). Berechne:
+1. Den berechneten aktuellen TDEE Trend des Nutzers.
+2. Eine präzise wissenschaftliche Begründung für die Anpassung.
+3. Die neuen Ziel-Vorgaben für Kcal und Makros basierend auf dem gewählten Ziel des Nutzers.`;
+
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+
+            const result = await response.json();
+            if (result.candidates && result.candidates[0].content.parts[0].text) {
+                const rawText = result.candidates[0].content.parts[0].text;
+                let cleanText = rawText;
+                
+                const jsonMatch = rawText.match(/```json([\s\S]*?)```/);
+                if (jsonMatch && jsonMatch[1]) {
+                    try {
+                        const parsedData = JSON.parse(jsonMatch[1].trim());
+                        if (parsedData.new_target_calories) {
+                            targetCalories = parseInt(parsedData.new_target_calories);
+                            localStorage.setItem('targetCalories', targetCalories);
+                            document.getElementById('targetCaloriesInput').value = targetCalories;
+                        }
+                        if (parsedData.new_target_carbs) {
+                            targetCarbs = parseInt(parsedData.new_target_carbs);
+                            localStorage.setItem('targetCarbs', targetCarbs);
+                        }
+                        if (parsedData.new_target_protein) {
+                            targetProtein = parseInt(parsedData.new_target_protein);
+                            localStorage.setItem('targetProtein', targetProtein);
+                        }
+                        if (parsedData.new_target_fat) {
+                            targetFat = parseInt(parsedData.new_target_fat);
+                            localStorage.setItem('targetFat', targetFat);
+                        }
+                        cleanText = rawText.replace(jsonMatch[0], '').trim();
+                    } catch (e) {
+                        console.error("Fehler beim Parsen der Makro-Ziele", e);
+                    }
+                }
+
+                responseBox.innerHTML = parseMarkdownToHtml(cleanText);
+                updateGoalsBanner();
+                alert("Check-In erfolgreich! Deine Makro- und Kalorienziele wurden adaptiv angepasst.");
+            } else {
+                throw new Error(result.error?.message || 'Unerwartete API-Antwort.');
+            }
+        } catch (error) {
+            responseBox.innerHTML = `<p style="color:var(--accent-red)"><strong>Fehler beim Check-In-Vorgang:</strong><br>${error.message}</p>`;
+        }
+    }
+
+    async function runAiAnalysis() {
+        const apiKey = localStorage.getItem('geminiApiKey');
+        const customPrompt = document.getElementById('aiCustomPrompt').value;
+        const responseBox = document.getElementById('aiResponse');
+
+        if (!apiKey) {
+            alert("Bitte hinterlege zuerst deinen Gemini API-Key in den App-Optionen (Zahnrad oben rechts).");
+            openSettingsModal();
+            switchModalTab('m-options');
+            return;
+        }
+
+        responseBox.style.display = 'block';
+        responseBox.innerHTML = '<p style="color:var(--text-secondary);"><strong>Gemini analysiert...</strong> Bitte habe einen Augenblick Geduld.</p>';
+
+        if (macroData.length === 0) {
+            responseBox.innerHTML = '<p style="color:var(--text-secondary);">Keine Daten für eine Analyse vorhanden.</p>';
+            return;
+        }
+
+        const dataSummary = macroData.map(d => {
+            const acts = d.activities && d.activities.length > 0 ? ` (Aktivitäten: ${d.activities.join(', ')})` : '';
+            const n = d.notes ? ` (Notiz: ${d.notes})` : '';
+            return `${d.date}: ${d.calories} kcal | W: ${d.weight > 0 ? d.weight+'kg' : '--'} | P: ${d.protein}g, K: ${d.carbs}g, F: ${d.fat}g${acts}${n}`;
+        }).join('\n');
+
+        const profile = JSON.parse(localStorage.getItem('userProfileData')) || {};
+        const profileContext = `
+Nutzerprofil-Kontext:
+- Alter: ${profile.age || 'Nicht angegeben'} Jahre
+- Größe: ${profile.height || 'Nicht angegeben'} cm
+- Geschlecht: ${profile.gender || 'Nicht angegeben'}
+- Alltagsaktivität: ${profile.activity || 'Nicht angegeben'}
+- Trainingsfrequenz: ${profile.frequency || 'Nicht angegeben'} Krafteinheiten/Woche
+- Spezifisches Fitnessziel: ${profile.goal || 'Gewicht halten'}
+        `;
+
+        const prompt = `Du bist ein präziser, sportwissenschaftlicher Analyse-Assistent. Analysiere folgende Ernährungshistorie strukturiert unter Einbeziehung des Nutzerprofils und des spezifischen Fitnessziels. Komm direkt zum Punkt und verzichte komplett auf Emojis. Nutze Standard-Markdown für die Strukturierung.
+Ziel-Kalorien des Nutzers: ${targetCalories} kcal.
+${profileContext}
+
+Historie:
+${dataSummary}
+
+${customPrompt ? `SPEZIFISCHER NUTZERWUNSCH FÜR DIESE ANFRAGE:\n${customPrompt}\n` : ''}
+
+Gib strukturiertes Feedback zu folgenden Aspekten:
+1. Kalorienbilanz & Gewichtstrend
+2. Makroverteilung
+3. Auffälligkeiten & Tipps`;
+
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+
+            const result = await response.json();
+            if (result.candidates && result.candidates[0].content.parts[0].text) {
+                let txt = result.candidates[0].content.parts[0].text;
+                responseBox.innerHTML = parseMarkdownToHtml(txt);
+            } else {
+                throw new Error(result.error?.message || 'Unerwartete API-Antwort.');
+            }
+        } catch (error) {
+            responseBox.innerHTML = `<p style="color:var(--accent-red)"><strong>Fehler bei der KI-Auswertung:</strong><br>${error.message}</p>`;
+        }
+    }
+
+    function parseMarkdownToHtml(md) {
+        let html = md;
+        html = html.replace(/\*\*([\s\S]*?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*([\s\S]*?)\*/g, '<em>$1</em>');
+        
+        const lines = html.split('\n');
+        let inList = false;
+        let finalLines = [];
+
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trim();
+            if (line.startsWith('* ') || line.startsWith('- ')) {
+                if (!inList) {
+                    finalLines.push('<ul>');
+                    inList = true;
+                }
+                finalLines.push(`<li>${line.substring(2)}</li>`);
+            } else {
+                if (inList) {
+                    finalLines.push('</ul>');
+                    inList = false;
+                }
+                if (line.startsWith('#')) {
+                    let level = 0;
+                    while (line.startsWith('#')) { level++; line = line.substring(1); }
+                    finalLines.push(`<h${level+1} style="font-size:15px; margin-bottom:8px; margin-top:14px;">${line.trim()}</h${level+1}>`);
+                } else if (line.length > 0) {
+                    finalLines.push(`<p>${line}</p>`);
+                }
+            }
+        }
+        if (inList) finalLines.push('</ul>');
+        return finalLines.join('\n');
+    }
+
+    function renderCharts() {
+        const textThemeColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
+        const gridThemeColor = getComputedStyle(document.documentElement).getPropertyValue('--input-color').trim();
+
+        Chart.defaults.color = textThemeColor;
+        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, sans-serif';
+
+        const last7 = macroData.slice(-7);
+        const macroLabels = last7.map(d => new Date(d.date).toLocaleDateString('de-DE', {weekday: 'short', day: '2-digit'}));
+        
+        const carbsVisualHeight = [];
+        const proteinVisualHeight = [];
+        const fatVisualHeight = [];
+        const targetLineData = Array(last7.length).fill(targetCalories);
+
+        last7.forEach(d => {
+            const totalGrams = d.carbs + d.protein + d.fat;
+            const actualTotalCal = d.calories || ((d.carbs * 4) + (d.protein * 4) + (d.fat * 9));
+            if (totalGrams > 0) {
+                carbsVisualHeight.push((d.carbs / totalGrams) * actualTotalCal);
+                proteinVisualHeight.push((d.protein / totalGrams) * actualTotalCal);
+                fatVisualHeight.push((d.fat / totalGrams) * actualTotalCal);
+            } else {
+                carbsVisualHeight.push(0); proteinVisualHeight.push(0); fatVisualHeight.push(0);
+            }
+        });
+
+        const macroCtx = document.getElementById('macroChart').getContext('2d');
+        if (macroChartInstance) macroChartInstance.destroy();
+
+        macroChartInstance = new Chart(macroCtx, {
+            type: 'bar',
+            data: {
+                labels: macroLabels,
+                datasets: [
+                    { label: 'Ziel-kcal', data: targetLineData, type: 'line', borderColor: '#ff453a', borderWidth: 2, borderDash: [6, 4], pointRadius: 0, fill: false, order: 1 },
+                    { label: 'Kohlenhydrate', data: carbsVisualHeight, backgroundColor: '#ffd60a', stack: 'macros', order: 2 },
+                    { label: 'Protein', data: proteinVisualHeight, backgroundColor: '#30d158', stack: 'macros', order: 3 },
+                    { label: 'Fett', data: fatVisualHeight, backgroundColor: '#ff9f0a', stack: 'macros', order: 4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true, grid: { display: false } },
+                    y: { stacked: true, grid: { color: gridThemeColor }, ticks: { callback: value => value + ' kcal' } }
+                },
+                plugins: {
+                    legend: { display: true, position: 'top', labels: { boxWidth: 10, padding: 10 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const index = context.dataIndex;
+                                const entry = last7[index];
+                                if (!entry) return '';
+                                if (context.dataset.type === 'line') return `Ziel-Budget: ${context.raw} kcal`;
+                                
+                                let grams = 0, realKcal = 0;
+                                if (context.dataset.label === 'Kohlenhydrate') { grams = entry.carbs; realKcal = grams * 4; }
+                                if (context.dataset.label === 'Protein') { grams = entry.protein; realKcal = grams * 4; }
+                                if (context.dataset.label === 'Fett') { grams = entry.fat; realKcal = grams * 9; }
+                                
+                                const totalGrams = entry.carbs + entry.protein + entry.fat;
+                                const percentageGrams = totalGrams > 0 ? Math.round((grams / totalGrams) * 100) : 0;
+                                return `${context.dataset.label}: ${grams}g (${percentageGrams}% Anteil) | ${realKcal} kcal`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const weightCanvas = document.getElementById('weightChart');
+        if (weightCanvas && macroData.length > 0) {
+            const weightCtx = weightCanvas.getContext('2d');
+            if (weightChartInstance) weightChartInstance.destroy();
+
+            const validWeightData = macroData.filter(d => d.weight > 0);
+            let weightLabels = [];
+            let weightValues = [];
+
+            if (weightFilter === 'daily') {
+                weightLabels = validWeightData.map(d => new Date(d.date).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit'}));
+                weightValues = validWeightData.map(d => d.weight);
+            } else if (weightFilter === 'weekly' || weightFilter === 'monthly') {
+                const groups = {};
+                validWeightData.forEach(d => {
+                    let key = '';
+                    if (weightFilter === 'weekly') {
+                        const info = getWeekInfo(d.date);
+                        key = `${info.year}-W${String(info.week).padStart(2, '0')}`;
+                    } else {
+                        key = d.date.substring(0, 7);
+                    }
+                    if (!groups[key]) groups[key] = { sum: 0, count: 0, label: weightFilter === 'weekly' ? 'W' + key.split('-W')[1] : new Date(d.date).toLocaleDateString('de-DE', {month: 'short', year: '2-digit'}) };
+                    groups[key].sum += d.weight;
+                    groups[key].count++;
+                });
+
+                Object.keys(groups).sort().forEach(k => {
+                    weightLabels.push(groups[k].label);
+                    weightValues.push(Number((groups[k].sum / groups[k].count).toFixed(1)));
+                });
+            }
+
+            weightChartInstance = new Chart(weightCtx, {
+                type: 'line',
+                data: {
+                    labels: weightLabels,
+                    datasets: [{ label: 'Gewicht (kg)', data: weightValues, borderColor: '#3e7df6', backgroundColor: 'rgba(62, 125, 246, 0.08)', fill: true, tension: 0.2, borderWidth: 3, pointRadius: 4 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { grid: { color: gridThemeColor }, ticks: { callback: value => value.toFixed(1) + ' kg' }, grace: '4%' }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    }
+
+    function changeWeightFilter(type) {
+        weightFilter = type;
+        document.querySelectorAll('#weightFilterControls .chart-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-w-${type}`).classList.add('active');
+        renderCharts();
+    }
+
+    function openSettingsModal() {
+        document.getElementById('settingsModal').style.display = 'flex';
+    }
+
+    function closeSettingsModal(event) {
+        if(event === true || event.target.id === 'settingsModal') {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+    }
+
+    function switchModalTab(tabId) {
+        document.querySelectorAll('.modal-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.modal-tab-content').forEach(c => c.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(`modalContent-${tabId}`).classList.add('active');
+    }
+
+    function saveUserProfileData() {
+        const profile = {
+            age: document.getElementById('userAge').value,
+            height: document.getElementById('userHeight').value,
+            gender: document.getElementById('userGender').value,
+            activity: document.getElementById('userActivity').value,
+            frequency: document.getElementById('userFrequency').value,
+            goal: document.getElementById('userGoal').value,
+            theme: document.getElementById('appTheme').value
+        };
+        localStorage.setItem('userProfileData', JSON.stringify(profile));
+        localStorage.setItem('geminiApiKey', document.getElementById('apiKeyInput').value.trim());
+        alert("Einstellungen erfolgreich im lokalen Speicher gesichert!");
+    }
+
+    function loadUserProfile() {
+        const profile = JSON.parse(localStorage.getItem('userProfileData'));
+        if (profile) {
+            document.getElementById('userAge').value = profile.age || '';
+            document.getElementById('userHeight').value = profile.height || '';
+            document.getElementById('userGender').value = profile.gender || 'Nicht angegeben';
+            document.getElementById('userActivity').value = profile.activity || 'Sedentär (fast nur sitzen)';
+            document.getElementById('userFrequency').value = profile.frequency || '';
+            document.getElementById('userGoal').value = profile.goal || 'Gewicht halten';
+            document.getElementById('appTheme').value = profile.theme || 'system';
+        }
+        document.getElementById('targetCaloriesInput').value = targetCalories;
+        document.getElementById('apiKeyInput').value = localStorage.getItem('geminiApiKey') || '';
+    }
+
+    function applyInitialTheme() {
+        const profile = JSON.parse(localStorage.getItem('userProfileData'));
+        if(profile && profile.theme) { applyThemeSetting(profile.theme); }
+    }
+
+    function applyThemeSetting(mode) {
+        if(mode === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        else if(mode === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        else document.documentElement.removeAttribute('data-theme');
+    }
+
+    function buildActivityGrid() {
+        const grid = document.getElementById('dynamicActivityGrid');
+        grid.innerHTML = '';
+        customActivities.forEach((act, idx) => {
+            const safeId = `act-dyn-${idx}`;
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            item.innerHTML = `<input type="checkbox" id="${safeId}" value="${act}"><label for="${safeId}">${act}</label>`;
+            grid.appendChild(item);
+        });
+    }
+
+    function renderActivityManagerList() {
+        const container = document.getElementById('customActivitiesList');
+        container.innerHTML = '';
+        customActivities.forEach((act, index) => {
+            const row = document.createElement('div');
+            row.className = 'activity-manager-item';
+            row.innerHTML = `<span>${act}</span><button onclick="removeCustomActivity(${index})">Löschen</button>`;
+            container.appendChild(row);
+        });
+    }
+
+    function addCustomActivity() {
+        const input = document.getElementById('newActivityInput');
+        const val = input.value.trim();
+        if(val && !customActivities.includes(val)) {
+            customActivities.push(val);
+            localStorage.setItem('customActivities', JSON.stringify(customActivities));
+            input.value = '';
+            buildActivityGrid();
+            renderActivityManagerList();
+        }
+    }
+
+    function removeCustomActivity(index) {
+        customActivities.splice(index, 1);
+        localStorage.setItem('customActivities', JSON.stringify(customActivities));
+        buildActivityGrid();
+        renderActivityManagerList();
+    }
+
+    function exportToCSV() {
+        if (macroData.length === 0) { alert('Keine Daten zum Exportieren vorhanden.'); return; }
+        let csvContent = "Datum;Gewicht(kg);Kalorien(kcal);Protein(g);Kohlenhydrate(g);Fett(g);Aktivitäten;Notizen\n";
+        macroData.forEach(item => {
+            const cleanNotes = '"' + (item.notes || '').replace(/"/g, '""') + '"';
+            const acts = item.activities ? '"' + item.activities.join(' | ') + '"' : '""';
+            csvContent += `${item.date};${item.weight || 0};${item.calories || 0};${item.protein};${item.carbs};${item.fat};${acts};${cleanNotes}\n`;
+        });
+
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", `makro_tracker_export_${new Date().toISOString().substring(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function triggerImport() { document.getElementById('csvImport').click(); }
+
+    function importCSV(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const text = evt.target.result;
+            const lines = text.split('\n');
+            if(lines.length < 2) return;
+            
+            const headers = lines[0].toLowerCase().split(';');
+            const map = {
+                date: headers.findIndex(h => h.includes('dat') || h.includes('tag')),
+                weight: headers.findIndex(h => h.includes('gew') || h.includes('kg') || h.includes('wei')),
+                calories: headers.findIndex(h => h.includes('kal') || h.includes('kcal') || h.includes('cal')),
+                protein: headers.findIndex(h => h.includes('prot') || h.includes('eiw')),
+                carbs: headers.findIndex(h => h.includes('kohl') || h.includes('carb') || h.includes('kh')),
+                fat: headers.findIndex(h => h.includes('fett') || h.includes('fat')),
+                activities: headers.findIndex(h => h.includes('akt')),
+                notes: headers.findIndex(h => h.includes('not') || h.includes('besch'))
+            };
+
+            let importedCount = 0;
+            for(let i=1; i<lines.length; i++) {
+                const line = lines[i].trim();
+                if(!line) continue;
+                const columns = line.split(';');
+
+                let date = '';
+                if(map.date !== -1 && columns[map.date]) {
+                    let rawDate = columns[map.date].trim();
+                    if(rawDate.includes('.')) {
+                        const parts = rawDate.split('.');
+                        if(parts.length === 3) date = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                    } else { date = rawDate; }
+                }
+                if (!date) continue;
+
+                const weight = map.weight !== -1 && columns[map.weight] ? (parseFloat(columns[map.weight].replace(',', '.')) || 0) : 0;
+                const protein = map.protein !== -1 && columns[map.protein] ? (parseInt(columns[map.protein]) || 0) : 0;
+                const carbs = map.carbs !== -1 && columns[map.carbs] ? (parseInt(columns[map.carbs]) || 0) : 0;
+                const fat = map.fat !== -1 && columns[map.fat] ? (parseInt(columns[map.fat]) || 0) : 0;
+                const calories = map.calories !== -1 && columns[map.calories] ? (parseInt(columns[map.calories]) || 0) : Math.round((protein * 4) + (carbs * 4) + (fat * 9));
+
+                let activities = [];
+                if(map.activities !== -1 && columns[map.activities]) {
+                    const cleanAct = columns[map.activities].replace(/"/g, '').trim();
+                    if(cleanAct) activities = cleanAct.split('|').map(x => x.trim());
+                }
+                const notes = map.notes !== -1 && columns[map.notes] ? columns[map.notes].replace(/"/g, '').trim() : '';
+
+                const existingIndex = macroData.findIndex(item => item.date === date);
+                const entry = { id: existingIndex >= 0 ? macroData[existingIndex].id : Date.now() + i, date, weight, calories, protein, carbs, fat, activities, notes };
+
+                if (existingIndex >= 0) macroData[existingIndex] = entry;
+                else macroData.push(entry);
+                importedCount++;
+            }
+
+            if (importedCount > 0) {
+                macroData.sort((a, b) => new Date(a.date) - new Date(b.date));
+                saveData();
+                updateUI();
+                alert(`${importedCount} Tage erfolgreich importiert!`);
+            }
+        };
+        reader.readAsText(file);
+    }
+</script>
+</body>
+</html>
