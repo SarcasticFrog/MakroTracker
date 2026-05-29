@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Makro Tracker v1.2 — Check-In Edition</title>
+    <title>MakroTracker</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -789,6 +792,14 @@
 </div>
 
 <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registriert', reg))
+                .catch(err => console.error('Service Worker Fehler', err));
+        });
+    }
+
     let macroData = JSON.parse(localStorage.getItem('macroData')) || [];
     let customActivities = JSON.parse(localStorage.getItem('customActivities')) || ['Cardio', 'Krafttraining', 'Spaziergang', 'Yoga'];
     let targetCalories = parseInt(localStorage.getItem('targetCalories')) || 2000;
