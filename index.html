@@ -1703,10 +1703,13 @@ Gib strukturiertes Feedback zu folgenden Aspekten:
         reader.readAsText(file);
     }
 
+    // Registrierung des Service Workers beim Laden der Seite
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker registriert', reg))
-            .catch(err => console.error('Service Worker Fehler', err));
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registriert', reg))
+                .catch(err => console.error('Service Worker Fehler', err));
+        });
     }
 </script>
 </body>
