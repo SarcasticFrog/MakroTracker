@@ -1,8 +1,8 @@
-const CACHE_NAME = 'makrotracker-v5';
+const CACHE_NAME = 'makrotracker-v6';
 const ASSETS = [
   'index.html',
   'manifest.json',
-  'logo.jpg'
+  'logo.png'
 ];
 
 self.addEventListener('install', (event) => {
