@@ -1702,11 +1702,10 @@ Gib strukturiertes Feedback zu folgenden Aspekten:
         };
         reader.readAsText(file);
     }
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('Service Worker registriert', reg))
-                .catch(err => console.error('Service Worker Fehler', err));
-        });
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker registriert', reg))
+            .catch(err => console.error('Service Worker Fehler', err));
     }
 </script>
 </body>
