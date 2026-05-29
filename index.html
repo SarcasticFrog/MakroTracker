@@ -792,14 +792,6 @@
 </div>
 
 <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('Service Worker registriert', reg))
-                .catch(err => console.error('Service Worker Fehler', err));
-        });
-    }
-
     let macroData = JSON.parse(localStorage.getItem('macroData')) || [];
     let customActivities = JSON.parse(localStorage.getItem('customActivities')) || ['Cardio', 'Krafttraining', 'Spaziergang', 'Yoga'];
     let targetCalories = parseInt(localStorage.getItem('targetCalories')) || 2000;
@@ -1709,6 +1701,13 @@ Gib strukturiertes Feedback zu folgenden Aspekten:
             }
         };
         reader.readAsText(file);
+    }
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registriert', reg))
+                .catch(err => console.error('Service Worker Fehler', err));
+        });
     }
 </script>
 </body>
