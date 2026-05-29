@@ -1,7 +1,8 @@
-const CACHE_NAME = 'makrotracker-v4';
+const CACHE_NAME = 'makrotracker-v5';
 const ASSETS = [
   'index.html',
-  'manifest.json'
+  'manifest.json',
+  'logo.jpg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -13,7 +14,17 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {
