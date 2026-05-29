@@ -1,5 +1,5 @@
 {
-  "name": "MakroTracker",
+  "name": "Makro Tracker",
   "short_name": "MakroTracker",
   "start_url": "index.html",
   "display": "standalone",
@@ -7,6 +7,11 @@
   "theme_color": "#0a0a0a",
   "orientation": "portrait",
   "icons": [
+    {
+      "src": "logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
     {
       "src": "logo.jpg",
       "sizes": "512x512",
